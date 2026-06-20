@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Calendar, CheckSquare, FileText, Activity, LayoutDashboard, ClipboardList, PenTool, Search, LogOut, MessageSquare, Users, Bell, Menu, Clock, RefreshCw, X, Compass, Award, MapPin, BookOpen, User, ChevronLeft, ChevronRight } from 'lucide-react'
+import { GraduationCap, Calendar, CheckSquare, FileText, Activity, LayoutDashboard, ClipboardList, PenTool, Search, LogOut, MessageSquare, Users, Bell, Menu, Clock, RefreshCw, X, Compass, Award, MapPin, BookOpen, User, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import ScrollToTop from './ScrollToTop'
 import TimetablePanel from './TimetablePanel'
 
@@ -861,42 +861,68 @@ export default function FacultyDashboard() {
             {/* ── Today's Sessions + Charts Row ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '20px' }}>
 
-              {/* Today's Sessions */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              {/* My Squad Metrics & Alerts */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Calendar size={16} style={{ color: '#3b82f6' }} /> Today's Sessions
+                    <Shield size={16} style={{ color: '#2563eb' }} /> Squad Health & Alerts
                   </h3>
-                  <button onClick={() => setActiveTab('timetable')} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>View Timetable →</button>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e40af', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>
+                    Squad: {facultyInfo?.squad || 'None'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {FACULTY_SCHEDULE.map((sch, idx) => {
-                    const badgeClasses = ['blue', 'purple', 'green', 'orange']
-                    const badgeCls = badgeClasses[idx] || 'blue'
-                    return (
-                      <div key={idx} style={{ display: 'flex', gap: '12px', paddingBottom: idx < FACULTY_SCHEDULE.length - 1 ? '16px' : '0' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '44px', flexShrink: 0 }}>
-                          <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', lineHeight: 1 }}>{sch.time.split(' ')[0]}</span>
-                          <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>{sch.time.split(' ')[1]}</span>
+
+                {/* Insurance Compliance Progress */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Insurance Uploads</span>
+                    <span style={{ fontSize: '12px', fontWeight: '750', color: '#0f172a' }}>
+                      {students.filter(s => s.insured).length} / {students.length} ({students.length > 0 ? Math.round((students.filter(s => s.insured).length / students.length) * 100) : 0}%)
+                    </span>
+                  </div>
+                  <div style={{ height: '6px', background: '#eff6ff', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      background: '#2563eb',
+                      borderRadius: '3px',
+                      width: `${students.length > 0 ? Math.round((students.filter(s => s.insured).length / students.length) * 100) : 0}%`,
+                      transition: 'width 0.5s ease-out'
+                    }} />
+                  </div>
+                </div>
+
+                {/* Average Marks Display */}
+                <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: '755', color: '#2563eb', textTransform: 'uppercase', display: 'block' }}>Average Marks</span>
+                    <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', marginTop: '2px' }}>Across evaluations</span>
+                  </div>
+                  <span style={{ fontSize: '24px', fontWeight: '850', color: '#2563eb' }}>
+                    {(() => {
+                      const studentIds = students.map(s => s.id);
+                      const evals = allEvaluations.filter(e => studentIds.includes(e.student_id));
+                      return evals.length > 0 ? Math.round(evals.reduce((sum, current) => sum + (current.marks || 0), 0) / evals.length) : 0;
+                    })()}
+                  </span>
+                </div>
+
+                {/* Urgent Compliance Nudges */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ⚠️ Action Required: Missing Undertakings
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '90px', overflowY: 'auto' }}>
+                    {students.filter(s => !s.undertaking_submitted).length === 0 ? (
+                      <span style={{ fontSize: '12px', color: '#10b981', fontStyle: 'italic' }}>All students have submitted undertaking!</span>
+                    ) : (
+                      students.filter(s => !s.undertaking_submitted).slice(0, 3).map(s => (
+                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff5f5', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#b91c1c' }}>{s.name}</span>
+                          <span style={{ fontSize: '10px', color: '#b91c1c', fontWeight: '650', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>Nudge Student</span>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0' }}>
-                          <div className={`desktop-schedule-icon-wrapper ${badgeCls}`} style={{ width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{getIcon(sch.iconName)}</div>
-                          {idx < FACULTY_SCHEDULE.length - 1 && <div style={{ width: '1.5px', flex: 1, background: '#e2e8f0', minHeight: '20px', marginTop: '2px' }} />}
-                        </div>
-                        <div style={{ flex: 1, paddingBottom: idx < FACULTY_SCHEDULE.length - 1 ? '0' : '0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{sch.event}</div>
-                              <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
-                                <MapPin size={10} />{sch.location}
-                              </div>
-                            </div>
-                            <span className={`upcoming-badge ${badgeCls}`} style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '50px', fontWeight: '700', whiteSpace: 'nowrap' }}>Upcoming</span>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1282,267 +1308,305 @@ export default function FacultyDashboard() {
 
         {activeTab === 'attendance' && (
           <div className="glass-card animate-fade-in">
-            <h2 style={{ fontSize: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <ClipboardList className="text-secondary" /> Mark Student Attendance
-            </h2>
 
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '16px', marginBottom: '24px', alignItems: isMobile ? 'flex-start' : 'center' }}>
-              <div style={{ flex: 1, minWidth: '200px', width: isMobile ? '100%' : 'auto' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Select Activity / Schedule</label>
-                <select
-                  className="input-field"
-                  value={selectedScheduleId}
-                  onChange={e => setSelectedScheduleId(e.target.value)}
-                  style={{ marginBottom: 0 }}
-                >
-                  <option value="">-- Choose Activity --</option>
-                  {schedules.map(s => (
-                    <option key={s.id} value={s.id}>{s.title} ({s.date})</option>
-                  ))}
-                </select>
-              </div>
+            {/* ── DETAIL PAGE ── */}
+            {selectedScheduleId ? (() => {
+              const sel = schedules.find(s => String(s.id) === String(selectedScheduleId))
+              if (!sel) return null
+              const marked = attendanceRecords.filter(a => a.schedule_id === sel.id).length
+              return (
+                <div>
+                  {/* Back + header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                    <button onClick={() => setSelectedScheduleId('')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '7px 14px', fontWeight: '700', fontSize: '12px', color: '#0f172a', cursor: 'pointer' }}>
+                      ← Back
+                    </button>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>Attendance · {sel.date}</div>
+                      <div style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{sel.title}</div>
+                    </div>
+                  </div>
 
-              {selectedScheduleId && (
-                <button className="btn btn-secondary" style={{ alignSelf: isMobile ? 'stretch' : 'flex-end', height: '42px' }} onClick={handleMarkAllPresent}>
-                  Mark All Present
-                </button>
-              )}
-            </div>
+                  {/* Stats bar */}
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                    {[['Total Students', students.length, '#0f172a'], ['Marked', marked, '#2563eb'], ['Unmarked', Math.max(0, students.length - marked), '#475569']].map(([lbl, val, clr]) => (
+                      <div key={lbl} style={{ flex: '1 1 100px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
+                        <div style={{ fontSize: '22px', fontWeight: '900', color: clr }}>{val}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', marginTop: '2px' }}>{lbl}</div>
+                      </div>
+                    ))}
+                    <button onClick={handleMarkAllPresent} style={{ flex: '1 1 140px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 20px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}>✓ Mark All Present</button>
+                  </div>
 
-            {!selectedScheduleId ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                <ClipboardList size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                <p>Please select an activity to mark attendance.</p>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead><tr><th>PRN / LTC ID</th><th>Student Name</th><th>Status</th><th>Actions</th></tr></thead>
-                  <tbody>
-                    {filteredStudents.map(st => {
-                      const selectedSchedule = schedules.find(s => s.id === parseInt(selectedScheduleId))
-                      // Show all students regardless of panel
-                      if (selectedSchedule) {
-                        const existingRecord = attendanceRecords.find(a => a.student_id === st.id && a.schedule_id === selectedSchedule.id)
-                        return (
-                          <tr key={st.id}>
-                            <td>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <code style={{ fontSize: '11px' }}>{st.prn || '—'}</code>
-                                {st.ltc_id && (
-                                  <span className="badge badge-blue" style={{ fontSize: '9px', padding: '1px 4px', alignSelf: 'flex-start', background: 'var(--primary-bg)', color: 'var(--primary)' }}>
-                                    LTC ID: {st.ltc_id}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td>{st.name}</td>
-                            <td>
-                              {existingRecord ? (
-                                <span className={`badge ${existingRecord.status === 'Present' ? 'badge-student' : 'badge-admin'}`}>
-                                  {existingRecord.status}
-                                </span>
-                              ) : (
-                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>Not Marked</span>
-                              )}
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                  className="btn"
-                                  style={{
-                                    padding: '4px 12px',
-                                    fontSize: '12px',
-                                    fontWeight: '700',
-                                    background: '#2563eb',
-                                    opacity: existingRecord?.status === 'Present' ? 0.5 : 1
-                                  }}
-                                  onClick={() => handleMarkAttendance(st.id, selectedSchedule.id, 'Present')}
-                                >
-                                  P
-                                </button>
-                                <button
-                                  className="btn"
-                                  style={{
-                                    padding: '4px 12px',
-                                    fontSize: '12px',
-                                    fontWeight: '700',
-                                    background: '#0f172a',
-                                    opacity: existingRecord?.status === 'Absent' ? 0.5 : 1
-                                  }}
-                                  onClick={() => handleMarkAttendance(st.id, selectedSchedule.id, 'Absent')}
-                                >
-                                  A
-                                </button>
-                              </div>
-                            </td>
+                  {/* Student table */}
+                  {students.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', background: '#f8fafc', borderRadius: '10px', fontSize: '13px' }}>No students allocated to your squad yet.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ background: '#0f172a' }}>
+                            {['#', 'PRN / LTC ID', 'Student Name', 'Status', 'Action'].map(h => (
+                              <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Action' ? 'center' : 'left', color: '#fff', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
                           </tr>
-                        )
-                      }
-                      return null
-                    })}
-                  </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                          {filteredStudents.map((st, i) => {
+                            const rec = attendanceRecords.find(a => a.student_id === st.id && a.schedule_id === sel.id)
+                            const isP = rec?.status === 'Present', isA = rec?.status === 'Absent'
+                            return (
+                              <tr key={st.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                                <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: '600', fontSize: '11px', whiteSpace: 'nowrap' }}>{i + 1}</td>
+                                <td style={{ padding: '10px 14px' }}>
+                                  <code style={{ fontSize: '11px', color: '#0f172a', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{st.prn || '—'}</code>
+                                  {st.ltc_id && <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '700', marginTop: '2px' }}>LTC: {st.ltc_id}</div>}
+                                </td>
+                                <td style={{ padding: '10px 14px', fontWeight: '700', color: '#0f172a' }}>{st.name}</td>
+                                <td style={{ padding: '10px 14px' }}>
+                                  {rec
+                                    ? <span style={{ display: 'inline-block', padding: '3px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', background: isP ? '#2563eb' : '#0f172a', color: '#fff' }}>{rec.status}</span>
+                                    : <span style={{ fontSize: '11px', color: '#94a3b8' }}>Not Marked</span>}
+                                </td>
+                                <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                    <button onClick={() => handleMarkAttendance(st.id, sel.id, 'Present')} style={{ padding: '5px 16px', borderRadius: '7px', border: `2px solid ${isP ? '#2563eb' : '#e2e8f0'}`, background: isP ? '#2563eb' : '#fff', color: isP ? '#fff' : '#2563eb', fontWeight: '800', fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}>P</button>
+                                    <button onClick={() => handleMarkAttendance(st.id, sel.id, 'Absent')} style={{ padding: '5px 16px', borderRadius: '7px', border: `2px solid ${isA ? '#0f172a' : '#e2e8f0'}`, background: isA ? '#0f172a' : '#fff', color: isA ? '#fff' : '#0f172a', fontWeight: '800', fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}>A</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })() : (
+
+              /* ── ACTIVITY TABLE LIST ── */
+              <div>
+                <h2 style={{ fontSize: '20px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px', color: '#0f172a' }}>
+                  <ClipboardList size={20} style={{ color: '#2563eb' }} /> Mark Student Attendance
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Select an activity to open its attendance page.</p>
+
+                {schedules.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', border: '1.5px dashed #e2e8f0', borderRadius: '12px' }}>
+                    <ClipboardList size={36} style={{ marginBottom: '10px', opacity: 0.4 }} />
+                    <p style={{ margin: 0 }}>No activities found for your active batch.</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: '#0f172a' }}>
+                          {['#', 'Date', 'Activity', 'Time', 'Marked', 'Progress', 'Action'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', color: '#fff', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schedules.map((s, i) => {
+                          const cnt = attendanceRecords.filter(a => a.schedule_id === s.id).length
+                          const total = students.length
+                          const pct = total > 0 ? Math.round((cnt / total) * 100) : 0
+                          const done = cnt >= total && total > 0
+                          return (
+                            <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                              <td style={{ padding: '11px 14px', color: '#94a3b8', fontWeight: '600', fontSize: '11px' }}>{i + 1}</td>
+                              <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb' }}>{s.date}</span>
+                              </td>
+                              <td style={{ padding: '11px 14px', fontWeight: '700', color: '#0f172a', minWidth: '160px' }}>{s.title}</td>
+                              <td style={{ padding: '11px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>{s.time}</td>
+                              <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontWeight: '800', color: '#0f172a' }}>{cnt}</span>
+                                <span style={{ color: '#94a3b8', fontSize: '11px' }}> / {total}</span>
+                              </td>
+                              <td style={{ padding: '11px 14px', minWidth: '100px' }}>
+                                <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: done ? '#2563eb' : '#0f172a', borderRadius: '99px', transition: 'width 0.3s' }} />
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '3px', fontWeight: '600' }}>{pct}%</div>
+                              </td>
+                              <td style={{ padding: '11px 14px' }}>
+                                <button
+                                  onClick={() => setSelectedScheduleId(String(s.id))}
+                                  style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '7px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >Open →</button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
+
+
+
+
+
         {activeTab === 'evaluate' && (
           <div className="glass-card animate-fade-in">
-            <h2 style={{ fontSize: '20px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <PenTool className="text-primary" /> Student Evaluation
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '24px' }}>Select markings for students and click "Save All Responses" at the top. Saved evaluations are locked.</p>
 
-            {/* Schedule Selector */}
-            <div style={{ marginBottom: '28px' }}>
-              <label style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>Select Activity / Schedule</label>
-              <select
-                className="input-field"
-                value={selectedEvalScheduleId}
-                onChange={e => {
-                  setSelectedEvalScheduleId(e.target.value)
-                  setSavedEvals({})
-                  setSelectedMarkings({})
-                }}
-              >
-                <option value="">-- Choose Event --</option>
-                {schedules.map(s => (
-                  <option key={s.id} value={s.id}>{s.title} ({s.date})</option>
-                ))}
-              </select>
-            </div>
-
-            {selectedEvalScheduleId && (() => {
+            {/* ── DETAIL PAGE ── */}
+            {selectedEvalScheduleId ? (() => {
               const OPTS = [
-                { value: 'not_done', label: 'Not Done', icon: '✗', color: '#0f172a', activeBg: 'rgba(239,68,68,0.15)', activeBorder: '#0f172a' },
-                { value: 'partially_done', label: 'Partial', icon: '◑', color: '#3b82f6', activeBg: 'rgba(245,158,11,0.15)', activeBorder: '#3b82f6' },
-                { value: 'fully_done', label: 'Done', icon: '✓', color: '#2563eb', activeBg: 'rgba(16,185,129,0.15)', activeBorder: '#2563eb' },
+                { value: 'not_done',       label: 'Not Done', icon: '✗', selBg: '#0f172a', selColor: '#fff' },
+                { value: 'partially_done', label: 'Partial',  icon: '◑', selBg: '#1e40af', selColor: '#fff' },
+                { value: 'fully_done',     label: 'Done',     icon: '✓', selBg: '#2563eb', selColor: '#fff' },
               ]
-
-              // Use all squad students directly — ignore the search filter so eval always shows everyone
               const evalStudents = students
-
               const pendingCount = Object.keys(selectedMarkings).filter(id => selectedMarkings[id] !== undefined).length
-
-              if (evalStudents.length === 0) {
-                return <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No students found. Make sure this faculty is assigned to a squad in the active batch.</p>
-              }
-
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-                  {/* Top Bar with multi-save */}
-                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : '0', marginBottom: '12px' }}>
-                    <div>
-                      <span style={{ fontSize: '14px', fontWeight: '600' }}>Showing {evalStudents.length} Students</span>
-                      {pendingCount > 0 && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6' }}>({pendingCount} pending save)</span>}
+                <div>
+                  {/* Back + header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button onClick={() => { setSelectedEvalScheduleId(''); setSavedEvals({}); setSelectedMarkings({}) }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '7px 14px', fontWeight: '700', fontSize: '12px', color: '#0f172a', cursor: 'pointer' }}>← Back</button>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>Evaluation · {schedules.find(s => String(s.id) === String(selectedEvalScheduleId))?.date}</div>
+                        <div style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{schedules.find(s => String(s.id) === String(selectedEvalScheduleId))?.title}</div>
+                      </div>
                     </div>
                     <button
-                      className="btn"
                       disabled={pendingCount === 0 || evalSubmitting}
                       onClick={handleEvaluate}
-                      style={{
-                        background: pendingCount > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                        color: pendingCount > 0 ? 'white' : '#64748b',
-                        borderColor: pendingCount > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                        cursor: (pendingCount === 0 || evalSubmitting) ? 'default' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        width: isMobile ? '100%' : 'auto'
-                      }}
-                    >
-                      {evalSubmitting ? 'Saving…' : `Save ${pendingCount} Responses`}
-                    </button>
+                      style={{ background: pendingCount > 0 ? '#2563eb' : '#e2e8f0', color: pendingCount > 0 ? '#fff' : '#94a3b8', border: 'none', padding: '9px 22px', borderRadius: '8px', fontWeight: '800', fontSize: '13px', cursor: pendingCount > 0 ? 'pointer' : 'default', transition: 'all 0.18s', whiteSpace: 'nowrap' }}
+                    >{evalSubmitting ? 'Saving…' : `Save ${pendingCount} Response${pendingCount !== 1 ? 's' : ''}`}</button>
                   </div>
 
-                  {evalStudents.map(st => {
-                    const pending = selectedMarkings[st.id]  // what user has toggled (not yet saved)
-                    const saved = savedEvals[st.id]         // what is confirmed saved
-                    const savedOpt = OPTS.find(o => o.value === saved)
-                    const activeOpt = OPTS.find(o => o.value === (saved || pending))
-
-                    return (
-                      <div key={st.id} style={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        alignItems: isMobile ? 'flex-start' : 'center',
-                        gap: '12px',
-                        padding: '14px 18px',
-                        borderRadius: '12px',
-                        background: saved ? `${savedOpt.activeBg}` : 'rgba(255,255,255,0.03)',
-                        border: saved ? `1.5px solid ${savedOpt.activeBorder}44` : '1.5px solid rgba(255,255,255,0.07)',
-                        transition: 'all 0.2s ease',
-                        flexWrap: 'wrap',
-                        opacity: saved ? 0.8 : 1
-                      }}>
-
-                        {/* Student Info */}
-                        <div style={{ flex: isMobile ? '1 1 auto' : '0 0 200px', minWidth: '150px' }}>
-                          <p style={{ fontWeight: '700', fontSize: '14px', margin: 0, color: 'var(--text-main)' }}>{st.name}</p>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
-                            {st.prn && <code style={{ fontSize: '11px', color: '#64748b' }}>{st.prn}</code>}
-                            {st.ltc_id && <span className="badge badge-blue" style={{ fontSize: '9px', padding: '1px 4px' }}>LTC: {st.ltc_id}</span>}
-                          </div>
-                        </div>
-
-                        {/* Marking Toggle Buttons */}
-                        <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
-                          {OPTS.map(opt => {
-                            const isSelected = (saved === opt.value) || (pending === opt.value)
+                  {evalStudents.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', background: '#f8fafc', borderRadius: '10px', fontSize: '13px' }}>No students allocated to your squad yet.</div>
+                  ) : (
+                    <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ background: '#0f172a' }}>
+                            {['#', 'Student', 'PRN', 'Not Done', 'Partial', 'Done', 'Status'].map(h => (
+                              <th key={h} style={{ padding: '10px 13px', textAlign: 'left', color: '#fff', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {evalStudents.map((st, i) => {
+                            const pending = selectedMarkings[st.id]
+                            const saved = savedEvals[st.id]
                             return (
-                              <button
-                                key={opt.value}
-                                disabled={!!saved}
-                                onClick={() => setSelectedMarkings(prev => ({
-                                  ...prev,
-                                  [st.id]: prev[st.id] === opt.value ? undefined : opt.value
-                                }))}
-                                style={{
-                                  padding: '7px 14px',
-                                  borderRadius: '8px',
-                                  border: `2px solid ${isSelected ? opt.color : 'rgba(255,255,255,0.1)'}`,
-                                  background: isSelected ? opt.activeBg : 'transparent',
-                                  color: isSelected ? opt.color : '#475569',
-                                  fontWeight: '700',
-                                  fontSize: '12px',
-                                  cursor: (!!saved) ? 'default' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '5px',
-                                  transition: 'all 0.15s ease',
-                                  boxShadow: (isSelected && !saved) ? `0 0 12px ${opt.color}55` : 'none',
-                                  opacity: (!!saved && !isSelected) ? 0.3 : 1,
-                                  whiteSpace: 'nowrap',
-                                  flex: isMobile ? '1 1 auto' : 'none',
-                                  justifyContent: isMobile ? 'center' : 'flex-start'
-                                }}
-                              >
-                                <span>{opt.icon}</span> {opt.label}
-                              </button>
+                              <tr key={st.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#f8fafc', opacity: saved ? 0.75 : 1 }}>
+                                <td style={{ padding: '10px 13px', color: '#94a3b8', fontWeight: '600', fontSize: '11px' }}>{i + 1}</td>
+                                <td style={{ padding: '10px 13px', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>{st.name}</td>
+                                <td style={{ padding: '10px 13px' }}>
+                                  <code style={{ fontSize: '11px', color: '#475569', background: '#f1f5f9', padding: '2px 5px', borderRadius: '4px' }}>{st.prn || '—'}</code>
+                                  {st.ltc_id && <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '700', marginTop: '2px' }}>LTC: {st.ltc_id}</div>}
+                                </td>
+                                {OPTS.map(opt => {
+                                  const isActive = (saved === opt.value) || (pending === opt.value && !saved)
+                                  return (
+                                    <td key={opt.value} style={{ padding: '10px 13px' }}>
+                                      <button
+                                        disabled={!!saved}
+                                        onClick={() => setSelectedMarkings(prev => ({ ...prev, [st.id]: prev[st.id] === opt.value ? undefined : opt.value }))}
+                                        style={{ padding: '5px 12px', borderRadius: '7px', border: `2px solid ${isActive ? opt.selBg : '#e2e8f0'}`, background: isActive ? opt.selBg : '#fff', color: isActive ? opt.selColor : '#64748b', fontWeight: '700', fontSize: '12px', cursor: saved ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+                                      ><span>{opt.icon}</span>{opt.label}</button>
+                                    </td>
+                                  )
+                                })}
+                                <td style={{ padding: '10px 13px', whiteSpace: 'nowrap' }}>
+                                  {saved
+                                    ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '800', color: '#2563eb' }}>🔒 Locked</span>
+                                    : pending
+                                      ? <span style={{ fontSize: '11px', fontWeight: '700', color: '#0f172a' }}>● Pending</span>
+                                      : <span style={{ fontSize: '11px', color: '#94a3b8' }}>—</span>}
+                                </td>
+                              </tr>
                             )
                           })}
-                        </div>
-
-                        {/* Status Label */}
-                        <div style={{ marginLeft: isMobile ? '0' : 'auto', width: isMobile ? '100%' : 'auto', textAlign: isMobile ? 'right' : 'left' }}>
-                          {saved ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '700', color: savedOpt.color, justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
-                              <span>{savedOpt.icon}</span> Locked
-                            </span>
-                          ) : pending ? (
-                            <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '600' }}>Pending Save</span>
-                          ) : null}
-                        </div>
-
-                      </div>
-                    )
-                  })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )
-            })()}
+            })() : (
+
+              /* ── ACTIVITY TABLE LIST ── */
+              <div>
+                <h2 style={{ fontSize: '20px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px', color: '#0f172a' }}>
+                  <PenTool size={20} style={{ color: '#2563eb' }} /> Student Evaluation
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px' }}>Select an activity to open its evaluation page.</p>
+
+                {schedules.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', border: '1.5px dashed #e2e8f0', borderRadius: '12px' }}>
+                    <PenTool size={36} style={{ marginBottom: '10px', opacity: 0.4 }} />
+                    <p style={{ margin: 0 }}>No activities found for your active batch.</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: '#0f172a' }}>
+                          {['#', 'Date', 'Activity', 'Time', 'Evaluated', 'Action'].map(h => (
+                            <th key={h} style={{ padding: '11px 14px', textAlign: 'left', color: '#fff', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schedules.map((s, i) => {
+                          const evalsDone = allEvaluations.filter(e => String(e.schedule_id) === String(s.id)).length
+                          const total = students.length
+                          const allDone = evalsDone >= total && total > 0
+                          return (
+                            <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                              <td style={{ padding: '11px 14px', color: '#94a3b8', fontWeight: '600', fontSize: '11px' }}>{i + 1}</td>
+                              <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb' }}>{s.date}</span>
+                              </td>
+                              <td style={{ padding: '11px 14px', fontWeight: '700', color: '#0f172a', minWidth: '160px' }}>{s.title}</td>
+                              <td style={{ padding: '11px 14px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>{s.time}</td>
+                              <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontWeight: '800', color: allDone ? '#2563eb' : '#0f172a' }}>{evalsDone}</span>
+                                <span style={{ color: '#94a3b8', fontSize: '11px' }}> / {total}</span>
+                                {allDone && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '800', color: '#2563eb' }}>✓ Done</span>}
+                              </td>
+                              <td style={{ padding: '11px 14px' }}>
+                                <button
+                                  onClick={() => { setSelectedEvalScheduleId(String(s.id)); setSavedEvals({}); setSelectedMarkings({}) }}
+                                  style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '7px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >Open →</button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
+
+
+
+
+
+
+
+
+
+
+
+
 
         {activeTab === 'guidelines' && (
           <div className="glass-card animate-fade-in">

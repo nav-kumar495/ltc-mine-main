@@ -319,7 +319,17 @@ export default function StudentDashboard() {
       return
     }
     fetchDashboardData()
+
+    // Real-time synchronization interval (every 5 seconds)
+    const interval = setInterval(fetchDashboardData, 5000)
+    return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'student' && activeTab !== 'dashboard') {
+      fetchDashboardData()
+    }
+  }, [activeTab])
 
   const fetchDashboardData = async () => {
     try {
@@ -1006,9 +1016,18 @@ export default function StudentDashboard() {
 
         {activeTab === 'attendance' && (
           <div className="glass-card animate-fade-in">
-             <h2 style={{ fontSize: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <ClipboardList className="text-secondary" /> Attendance Records
-            </h2>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+               <h2 style={{ fontSize: '20px', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <ClipboardList className="text-secondary" /> Attendance Records
+               </h2>
+               <button 
+                 onClick={fetchDashboardData} 
+                 className="btn btn-outline" 
+                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}
+               >
+                 <RefreshCw size={14} /> Refresh
+               </button>
+             </div>
             <table className="data-table">
               <thead><tr><th>Activity Title</th><th>Date</th><th>Status</th></tr></thead>
               <tbody>
@@ -1029,9 +1048,18 @@ export default function StudentDashboard() {
 
         {activeTab === 'evaluations' && (
           <div className="glass-card animate-fade-in">
-             <h2 style={{ fontSize: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <PenTool className="text-primary" /> My Evaluations / Rubric Results
-            </h2>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+               <h2 style={{ fontSize: '20px', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <PenTool className="text-primary" /> My Evaluations / Rubric Results
+               </h2>
+               <button 
+                 onClick={fetchDashboardData} 
+                 className="btn btn-outline" 
+                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}
+               >
+                 <RefreshCw size={14} /> Refresh
+               </button>
+             </div>
             <table className="data-table">
               <thead><tr><th>Activity</th><th>Marks (0-100)</th><th>Remarks / Feedback</th><th>Report File</th><th>Photo Evidence</th></tr></thead>
               <tbody>

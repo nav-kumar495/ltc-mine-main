@@ -888,7 +888,7 @@ function BatchAttendanceTab({ batchId, token, toast }) {
         setStudents(squadData.students)
       }
 
-      const schedRes = await fetch(`${API}/api/schedules`, { headers: { Authorization: `Bearer ${token}` } })
+      const schedRes = await fetch(`${API}/api/schedules?batchId=${batchId}`, { headers: { Authorization: `Bearer ${token}` } })
       const schedData = schedRes.ok ? await schedRes.json() : {}
       if (schedData.schedules) {
         setSchedules(schedData.schedules)

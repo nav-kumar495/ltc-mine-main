@@ -1,4 +1,0 @@
-name,email,prn,role,gender,department,semester
-John Doe,john.doe@example.com,PRN10001,student,male,CS,3
-Jane Smith,jane.smith@example.com,PRN10002,student,female,CS,3
-Dr. Robert,robert@example.com,,faculty,male,CS,

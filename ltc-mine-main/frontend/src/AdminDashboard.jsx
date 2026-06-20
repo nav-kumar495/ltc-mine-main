@@ -5,7 +5,8 @@ import {
   AlertCircle, FileText, Search, LogOut, Menu, Trash2, ClipboardList,
   Lock, Unlock, Clock, X, Shield, RefreshCw, ChevronLeft, ChevronRight,
   Layers, BarChart2, Bell, User, Home, Activity, MapPin, Grid,
-  Compass, Award, Mail, ChevronDown, UserPlus, Landmark, Network, UserCheck
+  Compass, Award, Mail, ChevronDown, UserPlus, Landmark, Network, UserCheck,
+  CheckSquare, MessageSquare
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -144,6 +145,8 @@ export default function AdminDashboard() {
   const [documents, setDocuments] = useState([])
   const [batches, setBatches] = useState([])
   const [recentActivities, setRecentActivities] = useState([])
+  const [attendanceRecords, setAttendanceRecords] = useState([])
+  const [evaluationRecords, setEvaluationRecords] = useState([])
 
   // Search
   const [facultySearch, setFacultySearch] = useState('')
@@ -262,17 +265,33 @@ export default function AdminDashboard() {
     if (res.ok) setRecentActivities(data.logs || [])
   }, [apiFetch])
 
+  const fetchAttendanceRecords = useCallback(async () => {
+    const res = await apiFetch('/api/faculty/attendance_records')
+    if (!res) return
+    const data = await res.json()
+    if (res.ok) setAttendanceRecords(data.records || [])
+  }, [apiFetch])
+
+  const fetchEvaluationRecords = useCallback(async () => {
+    const res = await apiFetch('/api/faculty/evaluations')
+    if (!res) return
+    const data = await res.json()
+    if (res.ok) setEvaluationRecords(data.evaluations || [])
+  }, [apiFetch])
+
   const refreshAllData = useCallback(async () => {
     try {
       await Promise.all([
         fetchUsers(),
         fetchBatches(),
-        fetchRecentActivities()
+        fetchRecentActivities(),
+        fetchAttendanceRecords(),
+        fetchEvaluationRecords()
       ])
     } catch (err) {
       console.error('Error refreshing dashboard data:', err)
     }
-  }, [fetchUsers, fetchBatches, fetchRecentActivities])
+  }, [fetchUsers, fetchBatches, fetchRecentActivities, fetchAttendanceRecords, fetchEvaluationRecords])
 
   // ── Auth guard + initial fetch ──
   useEffect(() => {
@@ -281,6 +300,8 @@ export default function AdminDashboard() {
     fetchDocuments()
     fetchBatches()
     fetchRecentActivities()
+    fetchAttendanceRecords()
+    fetchEvaluationRecords()
   }, [])
 
   // Periodically refresh all data to keep counts live and accurate (every 10 seconds)
@@ -335,6 +356,12 @@ export default function AdminDashboard() {
       documents: documents.length
     }
   }, [users, documents])
+
+  const activeBatch = useMemo(() => batches.find(b => b.status === 'active'), [batches])
+  const activeBatchStudents = useMemo(() => {
+    if (!activeBatch) return []
+    return users.filter(u => u.role === 'student' && u.active_batch_id === activeBatch.id)
+  }, [users, activeBatch])
 
   // Pagination instances
   const facultyPg = usePagination(faculties)
@@ -803,49 +830,179 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* SECTION 4: Today's Schedule */}
-        <div className="mobile-section-wrapper">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 className="mobile-section-title" style={{ margin: 0 }}>Today's Schedule</h3>
-            <span onClick={() => { setActiveTab('mobile-tools'); setMobileSubTool('timetable'); }} style={{ color: '#2563eb', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>View Timetable &rarr;</span>
-          </div>
-          <div className="mobile-schedule-card">
-            <div className="mobile-schedule-timeline">
-              {MOCK_SCHEDULE.map((sch, idx) => {
-                let badgeClass = 'blue';
-                let IconComponent = User;
-                if (idx === 1) { badgeClass = 'purple'; IconComponent = BookOpen; }
-                else if (idx === 2) { badgeClass = 'green'; IconComponent = Users; }
-                else if (idx === 3) { badgeClass = 'orange'; IconComponent = ClipboardList; }
+        {/* SECTION 4: Active Batch Metrics */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 16px', marginBottom: '24px' }}>
 
-                return (
-                  <div key={idx} className="mobile-schedule-timeline-item">
-                    <div className="mobile-schedule-time-col">
-                      <span className="mobile-schedule-time">{sch.time.split(' ')[0]}</span>
-                      <span className="mobile-schedule-ampm">{sch.time.split(' ')[1]}</span>
-                    </div>
-                    <div className="mobile-schedule-line-col">
-                      <div className={`mobile-schedule-icon-wrapper ${badgeClass}`}>
-                        <IconComponent size={11} />
+          {/* Card 1: Batch Health & Alerts */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Shield size={14} style={{ color: '#2563eb' }} /> Batch Health & Alerts
+              </h3>
+              <span style={{ fontSize: '10px', fontWeight: '700', color: '#1e40af', background: '#eff6ff', padding: '1px 5px', borderRadius: '4px' }}>
+                Batch: {activeBatch?.name || 'None'}
+              </span>
+            </div>
+
+            {/* Insurance Compliance Progress */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>Insurance Uploads</span>
+                <span style={{ fontSize: '11px', fontWeight: '750', color: '#0f172a' }}>
+                  {activeBatchStudents.filter(u => u.insured).length} / {activeBatchStudents.length}
+                </span>
+              </div>
+              <div style={{ height: '6px', background: '#eff6ff', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  background: '#2563eb',
+                  borderRadius: '3px',
+                  width: `${activeBatchStudents.length > 0 ? Math.round((activeBatchStudents.filter(u => u.insured).length / activeBatchStudents.length) * 100) : 0}%`,
+                  transition: 'width 0.5s ease-out'
+                }} />
+              </div>
+            </div>
+
+            {/* Average Marks Display */}
+            <div style={{ padding: '10px', background: '#eff6ff', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '755', color: '#2563eb', textTransform: 'uppercase', display: 'block' }}>Average Marks</span>
+              </div>
+              <span style={{ fontSize: '20px', fontWeight: '850', color: '#2563eb' }}>
+                {(() => {
+                  const currentStudentIds = activeBatchStudents.map(s => s.id);
+                  const currentEvals = evaluationRecords.filter(e => currentStudentIds.includes(e.student_id));
+                  return currentEvals.length > 0 ? Math.round(currentEvals.reduce((sum, curr) => sum + (curr.marks || 0), 0) / currentEvals.length) : 0;
+                })()}
+              </span>
+            </div>
+
+            {/* Urgent Compliance Nudges */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+              {activeBatchStudents.filter(u => !u.undertaking_submitted).length > 0 ? (
+                <>
+                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase' }}>
+                    ⚠️ Missing Undertakings
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '80px', overflowY: 'auto' }}>
+                    {activeBatchStudents.filter(u => !u.undertaking_submitted).slice(0, 3).map(u => (
+                      <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff5f5', padding: '4px 8px', borderRadius: '6px', border: '1px solid #fee2e2' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#b91c1c' }}>{u.name}</span>
+                        <span style={{ fontSize: '9px', color: '#b91c1c', fontWeight: '650', background: '#fee2e2', padding: '1px 4px', borderRadius: '3px' }}>Nudge</span>
                       </div>
-                      {idx < MOCK_SCHEDULE.length - 1 && <span className="mobile-schedule-line" />}
-                    </div>
-                    <div className="mobile-schedule-content-col">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <div>
-                          <div className="mobile-schedule-event">{sch.event}</div>
-                          <div className="mobile-schedule-meta">
-                            <MapPin size={11} />
-                            <span>{sch.location}</span>
-                          </div>
-                        </div>
-                        <span className={`upcoming-badge ${badgeClass}`} style={{ fontSize: '9px', padding: '2px 6px' }}>Upcoming</span>
-                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <span style={{ fontSize: '11px', color: '#10b981', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ✔️ All students have submitted undertaking!
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Card 2: Undertaking Form */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckSquare size={14} style={{ color: '#1d4ed8' }} /> Undertaking Form
+              </h3>
+              <button onClick={() => { setActiveTab('mobile-tools'); setMobileSubTool('students'); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>View &rarr;</button>
+            </div>
+            {(() => {
+              const totalCount = activeBatchStudents.length;
+              const submitted = activeBatchStudents.filter(u => u.undertaking_submitted).length;
+              const pending = Math.max(0, totalCount - submitted);
+              const pct = totalCount > 0 ? Math.round((submitted / totalCount) * 100) : 0;
+              
+              const r = 35;
+              const circ = 2 * Math.PI * r;
+              const dash = (pct / 100) * circ;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ position: 'relative', width: 70, height: 70, flexShrink: 0 }}>
+                    <svg width="70" height="70" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                      <circle
+                        cx="50" cy="50" r={r} fill="none"
+                        stroke="#1d4ed8" strokeWidth="10"
+                        strokeLinecap="round"
+                        strokeDasharray={`${dash} ${circ}`}
+                        strokeDashoffset={circ / 4}
+                        transform="rotate(0 50 50)"
+                        style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{pct}%</span>
                     </div>
                   </div>
-                );
-              })}
+                  <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ background: '#eff6ff', padding: '6px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>Submitted</div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#2563eb' }}>{submitted}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>Pending</div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>{pending}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Card 3: Feedback Form */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquare size={14} style={{ color: '#1d4ed8' }} /> Feedback Form
+              </h3>
+              <button onClick={() => { setActiveTab('mobile-tools'); setMobileSubTool('reports'); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>View &rarr;</button>
             </div>
+            {(() => {
+              const totalCount = activeBatchStudents.length;
+              const currentStudentIds = activeBatchStudents.map(s => s.id);
+              const currentEvals = evaluationRecords.filter(e => currentStudentIds.includes(e.student_id));
+              const submitted = new Set(currentEvals.map(e => e.student_id)).size;
+              const pending = Math.max(0, totalCount - submitted);
+              const pct = totalCount > 0 ? Math.round((submitted / totalCount) * 100) : 0;
+              
+              const r = 35;
+              const circ = 2 * Math.PI * r;
+              const dash = (pct / 100) * circ;
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ position: 'relative', width: 70, height: 70, flexShrink: 0 }}>
+                    <svg width="70" height="70" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                      <circle
+                        cx="50" cy="50" r={r} fill="none"
+                        stroke="#1d4ed8" strokeWidth="10"
+                        strokeLinecap="round"
+                        strokeDasharray={`${dash} ${circ}`}
+                        strokeDashoffset={circ / 4}
+                        transform="rotate(0 50 50)"
+                        style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ background: '#eff6ff', padding: '6px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>Submitted</div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#2563eb' }}>{submitted}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '6px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '600' }}>Pending</div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>{pending}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <TimetablePanel compact={true} onViewDetail={() => { setActiveTab('mobile-tools'); setMobileSubTool('timetable'); }} />
@@ -1350,166 +1507,193 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="desktop-dashboard-grid-main">
-          <div className="desktop-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Today's Schedule</h3>
-              <button 
-                onClick={() => setActiveTab('timetable')} 
-                style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
-              >
-                View Timetable &rarr;
-              </button>
-            </div>
-            
-            <div className="desktop-schedule-list" style={{ paddingLeft: 0 }}>
-              {MOCK_SCHEDULE.map((sch, idx) => {
-                let badgeClass = 'blue';
-                let IconComponent = User;
-                if (idx === 1) { badgeClass = 'purple'; IconComponent = BookOpen; }
-                else if (idx === 2) { badgeClass = 'green'; IconComponent = Users; }
-                else if (idx === 3) { badgeClass = 'orange'; IconComponent = ClipboardList; }
+        {/* ── Active Batch Metrics Row ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
 
+          {/* Card 1: Batch Health & Alerts */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={16} style={{ color: '#2563eb' }} /> Batch Health & Alerts
+              </h3>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e40af', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>
+                Batch: {activeBatch?.name || 'None'}
+              </span>
+            </div>
+
+            {/* Insurance Compliance Progress */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Insurance Uploads</span>
+                <span style={{ fontSize: '12px', fontWeight: '750', color: '#0f172a' }}>
+                  {activeBatchStudents.filter(u => u.insured).length} / {activeBatchStudents.length} ({activeBatchStudents.length > 0 ? Math.round((activeBatchStudents.filter(u => u.insured).length / activeBatchStudents.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div style={{ height: '6px', background: '#eff6ff', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  background: '#2563eb',
+                  borderRadius: '3px',
+                  width: `${activeBatchStudents.length > 0 ? Math.round((activeBatchStudents.filter(u => u.insured).length / activeBatchStudents.length) * 100) : 0}%`,
+                  transition: 'width 0.5s ease-out'
+                }} />
+              </div>
+            </div>
+
+            {/* Average Marks Display */}
+            <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: '755', color: '#2563eb', textTransform: 'uppercase', display: 'block' }}>Average Marks</span>
+                <span style={{ fontSize: '11px', color: '#1e40af', display: 'block', marginTop: '2px' }}>Across evaluations</span>
+              </div>
+              <span style={{ fontSize: '24px', fontWeight: '850', color: '#2563eb' }}>
+                {(() => {
+                  const currentStudentIds = activeBatchStudents.map(s => s.id);
+                  const currentEvals = evaluationRecords.filter(e => currentStudentIds.includes(e.student_id));
+                  return currentEvals.length > 0 ? Math.round(currentEvals.reduce((sum, curr) => sum + (curr.marks || 0), 0) / currentEvals.length) : 0;
+                })()}
+              </span>
+            </div>
+
+            {/* Urgent Compliance Nudges */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+              {activeBatchStudents.filter(u => !u.undertaking_submitted).length > 0 ? (
+                <>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ⚠️ Action Required: Missing Undertakings
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '90px', overflowY: 'auto' }}>
+                    {activeBatchStudents.filter(u => !u.undertaking_submitted).slice(0, 3).map(u => (
+                      <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff5f5', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fee2e2' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#b91c1c' }}>{u.name}</span>
+                        <span style={{ fontSize: '10px', color: '#b91c1c', fontWeight: '650', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px' }}>Nudge Student</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <span style={{ fontSize: '12px', color: '#10b981', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ✔️ All students have submitted undertaking!
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Card 2: Undertaking Form */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckSquare size={16} style={{ color: '#1d4ed8' }} /> Undertaking Form
+              </h3>
+              <button onClick={() => setActiveTab('students')} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>View Students &rarr;</button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', flex: 1, alignItems: 'center' }}>
+              {(() => {
+                const totalCount = activeBatchStudents.length;
+                const submitted = activeBatchStudents.filter(u => u.undertaking_submitted).length;
+                const pending = Math.max(0, totalCount - submitted);
+                const pct = totalCount > 0 ? Math.round((submitted / totalCount) * 100) : 0;
+                
+                const r = 45;
+                const circ = 2 * Math.PI * r;
+                const dash = (pct / 100) * circ;
                 return (
-                  <div key={idx} className="desktop-schedule-item">
-                    <div className="desktop-schedule-time-col">
-                      <span className="desktop-schedule-time">{sch.time.split(' ')[0]}</span>
-                      <span className="desktop-schedule-ampm">{sch.time.split(' ')[1]}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
+                    <div style={{ position: 'relative', width: 90, height: 90 }}>
+                      <svg width="90" height="90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                        <circle
+                          cx="50" cy="50" r={r} fill="none"
+                          stroke="#1d4ed8" strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${dash} ${circ}`}
+                          strokeDashoffset={circ / 4}
+                          transform="rotate(0 50 50)"
+                          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                        />
+                      </svg>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', lineHeight: 1 }}>{pct}%</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Undertaking Submitted</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Today</div>
                     </div>
                     
-                    <div className="desktop-schedule-line-col">
-                      <div className={`desktop-schedule-icon-wrapper ${badgeClass}`}>
-                        <IconComponent size={14} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', width: '100%' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', marginBottom: '2px' }}>Submitted</div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>{submitted}</div>
                       </div>
-                      {idx < MOCK_SCHEDULE.length - 1 && <div className="desktop-schedule-line" />}
-                    </div>
-
-                    <div className="desktop-schedule-content">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <div>
-                          <div className="desktop-schedule-title">{sch.event}</div>
-                          <div className="desktop-schedule-location">
-                            <MapPin size={12} />
-                            <span>{sch.location}</span>
-                          </div>
-                        </div>
-                        <span className={`upcoming-badge ${badgeClass}`}>Upcoming</span>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', marginBottom: '2px' }}>Pending</div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>{pending}</div>
                       </div>
                     </div>
                   </div>
                 );
-              })}
+              })()}
             </div>
           </div>
 
-          <div className="desktop-card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0 }}>User Analytics</h3>
-              <button 
-                onClick={() => setActiveTab('reports')} 
-                style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
-              >
-                View Reports &rarr;
-              </button>
+          {/* Card 3: Feedback Form */}
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={16} style={{ color: '#1d4ed8' }} /> Feedback Form
+              </h3>
+              <button onClick={() => setActiveTab('reports')} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>View Feedback &rarr;</button>
             </div>
-            
-            <div className="user-analytics-content" style={{ display: 'flex', flex: 1, gap: '24px', alignItems: 'flex-start' }}>
-              <div className="analytics-left-col" style={{ width: '120px', flexShrink: 0 }}>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block' }}>Total Users</span>
-                <span style={{ fontSize: '32px', fontWeight: '800', color: '#0f172a', display: 'block', margin: '4px 0 6px 0', letterSpacing: '-0.8px' }}>
-                  {(studCount + facCount + ltcCount + 1).toLocaleString('en-IN')}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '700', color: '#2563eb' }}>
-                  <span>▲ 12.4%</span>
-                </div>
-                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '2px' }}>vs last month</span>
-              </div>
-              
-              <div className="analytics-chart-col" style={{ flex: 1, position: 'relative', height: '140px' }}>
-                <svg viewBox="0 0 320 120" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                  <defs>
-                    <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  
-                  <line x1="0" y1="20" x2="320" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="0" y1="50" x2="320" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="0" y1="80" x2="320" y2="80" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="0" y1="110" x2="320" y2="110" stroke="#f1f5f9" strokeWidth="1" />
-                  
-                  <path d="M 0 90 Q 40 60 80 50 T 160 55 T 240 40 T 320 15 L 320 110 L 0 110 Z" fill="url(#chart-grad)" />
-                  <path d="M 0 90 Q 40 60 80 50 T 160 55 T 240 40 T 320 15" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="320" cy="15" r="4.5" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" />
-                  
-                  <foreignObject x="270" y="-12" width="60" height="24">
-                    <div style={{ background: '#2563eb', color: '#ffffff', fontSize: '9px', fontWeight: '800', padding: '2px 5px', borderRadius: '6px', textAlign: 'center', boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
-                      {(studCount + facCount + ltcCount + 1).toLocaleString('en-IN')}
-                    </div>
-                  </foreignObject>
-                </svg>
+            <div style={{ display: 'flex', justifyContent: 'center', flex: 1, alignItems: 'center' }}>
+              {(() => {
+                const totalCount = activeBatchStudents.length;
+                const currentStudentIds = activeBatchStudents.map(s => s.id);
+                const currentEvals = evaluationRecords.filter(e => currentStudentIds.includes(e.student_id));
+                const submitted = new Set(currentEvals.map(e => e.student_id)).size;
+                const pending = Math.max(0, totalCount - submitted);
+                const pct = totalCount > 0 ? Math.round((submitted / totalCount) * 100) : 0;
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontWeight: '600', color: '#94a3b8', marginTop: '6px' }}>
-                  <span>May 12</span>
-                  <span>May 19</span>
-                  <span>May 26</span>
-                  <span>Jun 02</span>
-                  <span>Jun 09</span>
-                </div>
-              </div>
-            </div>
-            
-            <div style={{ height: '1px', background: '#f1f5f9', margin: '20px 0' }} />
-            
-            <div className="analytics-breakdown-row" style={{ display: 'flex', gap: '24px' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: '#2563eb', marginBottom: '4px' }}>
-                  <span>Students</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{studCount.toLocaleString('en-IN')}</span>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#2563eb' }}>▲ 12.8%</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                  <div style={{ flex: 1, height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ width: '96.4%', height: '100%', background: '#2563eb' }} />
+                const r = 45;
+                const circ = 2 * Math.PI * r;
+                const dash = (pct / 100) * circ;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', flex: 1 }}>
+                    <div style={{ position: 'relative', width: 90, height: 90 }}>
+                      <svg width="90" height="90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r={r} fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                        <circle
+                          cx="50" cy="50" r={r} fill="none"
+                          stroke="#1d4ed8" strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={`${dash} ${circ}`}
+                          strokeDashoffset={circ / 4}
+                          transform="rotate(0 50 50)"
+                          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                        />
+                      </svg>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', lineHeight: 1 }}>{pct}%</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Feedback Submitted</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>This Month</div>
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '16px', width: '100%' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', marginBottom: '2px' }}>Submitted</div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>{submitted}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', marginBottom: '2px' }}>Pending</div>
+                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>{pending}</div>
+                      </div>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', width: '30px', textAlign: 'right' }}>96.4%</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: '#1d4ed8', marginBottom: '4px' }}>
-                  <span>Faculty</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{facCount}</span>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#2563eb' }}>▲ 8.1%</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                  <div style={{ flex: 1, height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ width: '3.6%', height: '100%', background: '#1d4ed8' }} />
-                  </div>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', width: '30px', textAlign: 'right' }}>3.6%</span>
-                </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>
-                  <span>Others</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{ltcCount + 1}</span>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8' }}>&mdash; 0%</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                  <div style={{ flex: 1, height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ width: '0%', height: '100%', background: '#94a3b8' }} />
-                  </div>
-                  <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', width: '30px', textAlign: 'right' }}>0%</span>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>

@@ -2331,6 +2331,30 @@ textarea.input-field { border-radius: 12px; resize: vertical; min-height: 100px;
   .desktop-sidebar .sidebar-profile-role {
     color: #64748b;
   }
+
+  .desktop-sidebar .sidebar-action-btn.signout-btn {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+  }
+  
+  .desktop-sidebar .sidebar-action-btn.signout-btn:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+  
+  .desktop-sidebar .sidebar-action-btn.reset-btn {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  
+  .desktop-sidebar .sidebar-action-btn.reset-btn:hover {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #dc2626;
+  }
   
   .desktop-main-container {
     flex: 1;
